@@ -1,5 +1,6 @@
 #perso
 create_db.py
+all_files.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
