@@ -39,7 +39,7 @@ Les principales tables :
 
 
 ## Todo readme
-finir installation y compris db et requirement
+finir installation y compris db (faire un seed avec roles) et requirement
 
 ✅ Exemple d'utilisation
 
