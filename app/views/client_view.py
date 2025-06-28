@@ -1,8 +1,9 @@
 from app.config import SessionLocal
 from app.controllers.client_controller import list_all_clients
-from app.utils.auth import jwt_required, role_commercial_required
+from app.utils.auth import jwt_required, role_required
 
-@role_commercial_required
+@jwt_required
+@role_required("commercial")
 def show_all_clients(user):
     session = SessionLocal()
     clients = list_all_clients(session)
