@@ -33,3 +33,33 @@ def jwt_required(func):
             return
         return func(user, *args, **kwargs)
     return wrapper
+
+def role_gestion_required(func):
+    def wrapper(*args, **kwargs):
+        user = get_current_user()
+        print (user.role.name)
+        if not user.role.name == "gestion":
+            print("⛔ Accès refusé : vous devez être gestion.")
+            return
+        return func(user, *args, **kwargs)
+    return wrapper
+
+def role_commercial_required(func):
+    def wrapper(*args, **kwargs):
+        user = get_current_user()
+        print (user.role.name)
+        if not user.role.name == "commercial":
+            print("⛔ Accès refusé : vous devez être commercial.")
+            return
+        return func(user, *args, **kwargs)
+    return wrapper
+
+def role_support_required(func):
+    def wrapper(*args, **kwargs):
+        user = get_current_user()
+        print (user.role.name)
+        if not user.role.name == "support":
+            print("⛔ Accès refusé : vous devez être support.")
+            return
+        return func(user, *args, **kwargs)
+    return wrapper
