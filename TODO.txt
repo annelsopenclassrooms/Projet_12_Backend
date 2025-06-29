@@ -1,1 +1,17 @@
 verifier le format de mails a la creation et modification
+date end pas avant start
+
+tester
+
+create
+    user
+    client
+    event
+    contract
+
+update
+
+    user
+    client
+    event
+    contract
