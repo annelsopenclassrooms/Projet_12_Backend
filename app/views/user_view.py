@@ -27,6 +27,10 @@ def create_user_view(current_user):
     else:
         print(f"✅ Utilisateur {user.first_name} créé avec succès.")
 
+@jwt_required
+@role_required("gestion")
+def delete_user_view(current_user):
+    pass
 
 @jwt_required
 @role_required("gestion")

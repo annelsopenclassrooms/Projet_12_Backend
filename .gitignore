@@ -1,6 +1,8 @@
 #perso
 create_db.py
 all_files.py
+.token
+tests_perso.py/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
