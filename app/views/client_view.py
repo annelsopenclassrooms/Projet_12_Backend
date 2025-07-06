@@ -2,28 +2,41 @@ from app.config import SessionLocal
 from app.controllers.client_controller import list_all_clients, update_client, create_client
 from app.utils.auth import jwt_required, role_required
 from app.utils.helpers import safe_input_email
-
+from rich.console import Console
+from rich.table import Table
 from app.models import Clients
 
 from app.utils.helpers import safe_input_int, safe_input_email, safe_input_phone
 
 @jwt_required
-@role_required("commercial")
-def show_all_clients(user):
+@role_required("commercial", "gestion", "support")
+def show_all_clients_view(user):
     session = SessionLocal()
     clients = list_all_clients(session)
 
+    console = Console()
+
     if not clients:
-        print("Aucun client trouvé.")
+        console.print("[red]Aucun client trouvé.[/red]")
         return
 
-    print(f"\n📋 Liste des clients accessibles par {user.first_name} :\n")
-    for client in clients:
-        print(f"- {client.first_name} {client.last_name} | {client.email} | {client.company_name}")
+    table = Table(title=f"📋 Clients accessibles par {user.first_name}", header_style="bold magenta")
+    table.add_column("ID", style="cyan", justify="right")
+    table.add_column("Prénom", style="yellow")
+    table.add_column("Nom", style="yellow")
+    table.add_column("Email", style="blue")
+    table.add_column("Entreprise", style="green")
 
-from app.config import SessionLocal
-from app.controllers.client_controller import create_client
-from app.utils.auth import jwt_required, role_required
+    for client in clients:
+        table.add_row(
+            str(client.id),
+            client.first_name,
+            client.last_name,
+            client.email,
+            client.company_name
+        )
+
+    console.print(table)
 
 @jwt_required
 @role_required("commercial")

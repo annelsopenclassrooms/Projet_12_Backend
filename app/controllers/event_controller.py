@@ -44,15 +44,29 @@ def update_event(session, event_id, updates, current_user):
     if not event:
         return None, f"❌ Event ID {event_id} not found."
 
-    # If user is support, ensure they are assigned to this event
-    if current_user.role.name == "support" and event.support_contact_id != current_user.id:
+    role = current_user.role.name
+
+    # Restriction pour support : ne peut modifier que ses propres événements
+    if role == "support" and event.support_contact_id != current_user.id:
         return None, "⛔ You are not allowed to update this event."
 
-    # Apply updates if not None
+    # Champs autorisés par rôle
+    allowed_fields_by_role = {
+        "gestion": {"support_contact_id"},
+        "support": {"name", "date_start", "date_end", "location", "attendees", "notes"},
+    }
+
+    allowed_fields = allowed_fields_by_role.get(role, set())
+
+    # Appliquer les modifications autorisées uniquement
     for field, value in updates.items():
         if value is not None:
-            setattr(event, field, value)
+            if field in allowed_fields:
+                setattr(event, field, value)
+            else:
+                return None, f"⛔ You are not allowed to modify '{field}' as a '{role}'."
 
     session.commit()
     return event, None
+
 

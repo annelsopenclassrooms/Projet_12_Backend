@@ -8,7 +8,7 @@ from app.controllers.contract_controller import update_contract
 
 
 @jwt_required
-def show_all_contracts(user):
+def show_all_contracts_view(user):
     session = SessionLocal()
     contracts = list_all_contracts(session)
 
