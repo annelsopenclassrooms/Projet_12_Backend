@@ -15,3 +15,7 @@ update
     client
     event
     contract
+
+
+Montant total du contrat : 450
+Montant restant dû : 500
