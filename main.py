@@ -1,5 +1,5 @@
 from app.views.login import login
-from app.views.main_menu import main_menu
+from app.menus.main_menu import main_menu
 
 
 def main():

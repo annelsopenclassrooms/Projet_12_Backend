@@ -182,3 +182,97 @@ def update_contract_view(current_user):
         console.print(f"[red]❌ {error}[/red]")
     else:
         console.print(f"[green]✅ Contrat mis à jour avec succès.[/green]")
+
+
+from datetime import datetime
+from sqlalchemy import or_
+from app.config import SessionLocal
+from app.models import Contracts, Clients
+from app.utils.auth import jwt_required, role_required
+from app.utils.helpers import safe_input_float
+from rich.console import Console
+from rich.table import Table
+
+console = Console()
+
+
+@jwt_required
+@role_required("gestion", "commercial")
+def filter_contracts_view(current_user):
+    session = SessionLocal()
+
+    console.print("\n[bold cyan]=== Filtrer les contrats ===[/bold cyan]")
+
+    menu = [
+        ("1", "Contrats non signés"),
+        ("2", "Contrats non entièrement payés"),
+        ("3", "Contrats non signés ET non entièrement payés"),
+        ("4", "Contrats signés"),
+        ("5", "Contrats entièrement payés"),
+        ("0", "[red]Retour"),
+    ]
+
+    table = Table(title="🔍 Filtres disponibles", show_header=True, header_style="bold magenta")
+    table.add_column("Choix", style="dim")
+    table.add_column("Filtre")
+
+    for opt in menu:
+        table.add_row(*opt)
+
+    console.print(table)
+
+    choice = input("Votre choix : ").strip()
+
+    if choice == "0":
+        return
+
+    query = session.query(Contracts)
+
+    # Restreindre aux contrats du commercial, s'il y a lieu
+    if current_user.role.name == "commercial":
+        query = query.join(Clients).filter(Clients.commercial_id == current_user.id)
+
+    if choice == "1":
+        query = query.filter(Contracts.is_signed == False)
+
+    elif choice == "2":
+        query = query.filter(Contracts.amount_due > 0)
+
+    elif choice == "3":
+        query = query.filter(Contracts.is_signed == False, Contracts.amount_due > 0)
+
+    elif choice == "4":
+        query = query.filter(Contracts.is_signed == True)
+
+    elif choice == "5":
+        query = query.filter(Contracts.amount_due == 0)
+
+    else:
+        console.print("[red]❌ Choix invalide.[/red]")
+        return
+
+    results = query.all()
+
+    if not results:
+        console.print("[yellow]Aucun contrat trouvé selon ce filtre.[/yellow]")
+        return
+
+    table = Table(title="📋 Résultat du filtre", show_lines=True)
+    table.add_column("ID", justify="right")
+    table.add_column("Client", style="cyan")
+    table.add_column("Signé", justify="center")
+    table.add_column("Montant dû", justify="right")
+    table.add_column("Montant total", justify="right")
+    table.add_column("Créé le", style="dim")
+
+    for c in results:
+        table.add_row(
+            str(c.id),
+            f"{c.client.first_name} {c.client.last_name}",
+            "✅" if c.is_signed else "❌",
+            f"{c.amount_due:.2f}",
+            f"{c.total_amount:.2f}",
+            str(c.date_created.date()),
+        )
+
+    console.print(table)
