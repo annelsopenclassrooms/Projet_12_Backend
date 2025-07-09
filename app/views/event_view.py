@@ -48,9 +48,8 @@ def show_all_events_view(user):
 
     console.print(table)
 
-
 @jwt_required
-@role_required("gestion", "commercial")
+@role_required("commercial")
 def create_event_view(current_user):
     session = SessionLocal()
     console.print("\n[bold cyan]=== Création d’un nouvel événement ===[/bold cyan]")
@@ -86,7 +85,16 @@ def create_event_view(current_user):
 
     contract_id = safe_input_int("Contract ID: ")
 
-    # Affichage des supports
+    # Vérification que le contrat est signé
+    selected_contract = session.query(Contracts).filter_by(id=contract_id, client_id=client_id).first()
+    if not selected_contract:
+        console.print(f"[red]❌ Contrat ID {contract_id} introuvable pour ce client.[/red]")
+        return
+    if not selected_contract.is_signed:
+        console.print(f"[red]❌ Le contrat ID {contract_id} n'est pas signé. Impossible de créer un événement.[/red]")
+        return
+
+    # Affichage des contacts support
     support_users = session.query(Users).filter(Users.role.has(name="support")).all()
     support_table = Table(title="📌 Contacts support disponibles", header_style="bold magenta")
     support_table.add_column("ID", justify="right")
@@ -122,7 +130,6 @@ def create_event_view(current_user):
         console.print(f"[red]❌ {error}[/red]")
     else:
         console.print(f"[green]✅ Événement créé : {event.name} (ID: {event.id})[/green]")
-
 
 @jwt_required
 @role_required("gestion")

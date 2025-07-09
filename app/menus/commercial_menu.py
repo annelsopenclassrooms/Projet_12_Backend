@@ -5,8 +5,8 @@ from rich.prompt import Prompt
 
 from app.utils.auth import role_required
 from app.views.client_view import create_client_view, update_client_view, show_all_clients_view
-from app.views.contract_view import update_contract_view, filter_contracts_view
-from app.views.event_view import create_event_view
+from app.views.contract_view import update_contract_view, filter_contracts_view, show_all_contracts_view
+from app.views.event_view import create_event_view, show_all_events_view
 
 from app.menus.utils import display_action_menu
 
@@ -65,6 +65,7 @@ def commercial_contrats_menu(user):
     actions = [
         ("1", "Modifier un contrat (dont vous êtes responsable)", update_contract_view),
         ("2", "Filtrer les contrats (non signés / non payés)", filter_contracts_view),
+        ("3", "Lister tous les contrats", show_all_contracts_view),
         ("0", "[red]Retour"),
     ]
     display_action_menu(actions)
@@ -77,6 +78,7 @@ def commercial_contrats_menu(user):
 def commercial_evenements_menu(user):
     actions = [
         ("1", "Créer un événement (client ayant signé)", create_event_view),
+        ("2", "Lister tous les événements", show_all_events_view),
         ("0", "[red]Retour"),
     ]
     display_action_menu(actions)
