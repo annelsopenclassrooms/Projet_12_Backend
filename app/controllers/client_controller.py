@@ -1,3 +1,4 @@
+import sentry_sdk
 from app.services.client_service import get_all_clients as service_get_all_clients
 from app.models import Clients
 
@@ -8,45 +9,67 @@ def list_all_clients(session):
 
 
 def create_client(session, first_name, last_name, email, phone, company_name, commercial_id):
-    # Check if email already exists
-    existing_client = session.query(Clients).filter_by(email=email).first()
-    if existing_client:
-        return None, f"❌ A client with this email already exists."
+    try:
+        existing_client = session.query(Clients).filter_by(email=email).first()
+        if existing_client:
+            return None, f"❌ Un client avec cet email existe déjà."
 
-    client = Clients(
-        first_name=first_name,
-        last_name=last_name,
-        email=email,
-        phone=phone,
-        company_name=company_name,
-        commercial_id=commercial_id
-    )
+        client = Clients(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            phone=phone,
+            company_name=company_name,
+            commercial_id=commercial_id
+        )
 
-    session.add(client)
-    session.commit()
+        session.add(client)
+        session.commit()
 
-    return client, None
+        # Sentry log: création
+        sentry_sdk.capture_message(
+            f"Client crée: {client.first_name} {client.last_name} | Email: {client.email} | ID Commercial: {commercial_id}",
+            level="info"
+        )
+
+        return client, None
+
+    except Exception as e:
+        session.rollback()
+        sentry_sdk.capture_exception(e)
+        return None, "❌ Erreur inattendue lors de la création du client."
 
 
 def update_client(session, client_id, updates, current_user):
-    client = session.query(Clients).filter_by(id=client_id).first()
-    if not client:
-        return None, f"❌ Client ID {client_id} not found."
+    try:
+        client = session.query(Clients).filter_by(id=client_id).first()
+        if not client:
+            return None, f"❌ Client ID {client_id} introuvable."
 
-    if current_user.role.name == "commercial" and client.commercial_id != current_user.id:
-        return None, "⛔ You are not allowed to update this client."
+        if current_user.role.name == "commercial" and client.commercial_id != current_user.id:
+            return None, "⛔ Vous n’êtes pas autorisé·e à modifier ce client."
 
-    # If email is updated, check if it's unique
-    new_email = updates.get("email")
-    if new_email and new_email != client.email:
-        existing_client = session.query(Clients).filter_by(email=new_email).first()
-        if existing_client:
-            return None, f"❌ This email is already used by another client."
+        new_email = updates.get("email")
+        if new_email and new_email != client.email:
+            existing_client = session.query(Clients).filter_by(email=new_email).first()
+            if existing_client:
+                return None, f"❌ Cet email est déjà utilisé par un autre client."
 
-    # Apply updates
-    for field, value in updates.items():
-        if value is not None:
-            setattr(client, field, value)
+        for field, value in updates.items():
+            if value is not None:
+                setattr(client, field, value)
 
-    session.commit()
-    return client, None
+        session.commit()
+
+        # Sentry log: modification
+        sentry_sdk.capture_message(
+            f"Client modifié : {client.first_name} {client.last_name} (ID : {client.id}) par l’utilisateur ID {current_user.id}",
+            level="info"
+        )
+
+        return client, None
+
+    except Exception as e:
+        session.rollback()
+        sentry_sdk.capture_exception(e)
+        return None, "❌ Erreur inattendue lors de la mise à jour du client."

@@ -132,7 +132,7 @@ def create_event_view(current_user):
         console.print(f"[green]✅ Événement créé : {event.name} (ID: {event.id})[/green]")
 
 @jwt_required
-@role_required("gestion")
+@role_required("gestion", "support")
 def update_event_view(current_user):
     session = SessionLocal()
 
@@ -185,10 +185,15 @@ def update_event_view(current_user):
 
     if current_user.role.name == "support":
         name = input(f"Nouveau nom [{event.name}] : ").strip() or None
-        date_start = safe_input_date(f"Nouvelle date de début [{event.date_start.date()}] (YYYY-MM-DD) : ") or None
-        date_end = safe_input_date(f"Nouvelle date de fin [{event.date_end.date()}] (YYYY-MM-DD) : ") or None
+        date_start_input = input(f"Nouvelle date de début [{event.date_start.date()}] (YYYY-MM-DD) : ").strip()
+        date_start = safe_input_date("Date de début : ") if date_start_input else None
+
+        date_end_input = input(f"Nouvelle date de fin [{event.date_end.date()}] (YYYY-MM-DD) : ").strip()
+        date_end = safe_input_date("Date de fin : ") if date_end_input else None
+
         location = input(f"Nouveau lieu [{event.location}] : ").strip() or None
-        attendees = safe_input_int(f"Nombre de participants [{event.attendees}] : ") or None
+        attendees_input = input(f"Nombre de participants [{event.attendees}] : ").strip()
+        attendees = int(attendees_input) if attendees_input.isdigit() else None
         notes = input(f"Nouvelles notes [{event.notes}] : ").strip() or None
 
         updates.update({
@@ -225,7 +230,7 @@ def update_event_view(current_user):
 
 
 @jwt_required
-@role_required("gestion")
+@role_required("gestion", "support")
 def filter_events_view(user):
     session = SessionLocal()
 
@@ -268,7 +273,6 @@ def filter_events_view(user):
         query = query.filter(Events.support_contact_id != None)
     elif choice == "5":
         query = query.filter(Events.attendees > 100)
-
 
     events = query.all()
 
