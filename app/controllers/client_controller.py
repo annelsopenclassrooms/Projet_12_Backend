@@ -52,7 +52,7 @@ def update_client(session, client_id, updates, current_user):
         new_email = updates.get("email")
         if new_email and new_email != client.email:
             existing_client = session.query(Clients).filter_by(email=new_email).first()
-            if existing_client:
+            if existing_client and existing_client.id != client.id:
                 return None, f"❌ Cet email est déjà utilisé par un autre client."
 
         for field, value in updates.items():
