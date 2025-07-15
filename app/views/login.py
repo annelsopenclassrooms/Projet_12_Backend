@@ -6,6 +6,7 @@ from app.utils.jwt_handler import create_jwt_token
 
 TOKEN_FILE = ".token"
 
+
 def login():
     session = SessionLocal()
     print("== Connexion ==")

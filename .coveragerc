@@ -1,0 +1,4 @@
+[run]
+source = app
+include = */views/*,*/models/*,*/controllers/*
+omit = */__pycache__/*,*/tests/*

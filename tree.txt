@@ -1,0 +1,148 @@
+.
+├── README.md
+├── TODO.txt
+├── __pycache__
+│   ├── database.cpython-312.pyc
+│   ├── test_create_contract.cpython-312-pytest-7.4.4.pyc
+│   ├── test_create_event.cpython-312-pytest-7.4.4.pyc
+│   └── test_modify_user.cpython-312-pytest-7.4.4.pyc
+├── alice.txt
+├── all_files.py
+├── app
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-312.pyc
+│   │   └── config.cpython-312.pyc
+│   ├── config.py
+│   ├── controllers
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-312.pyc
+│   │   │   ├── auth_controller.cpython-312.pyc
+│   │   │   ├── client_controller.cpython-312.pyc
+│   │   │   ├── contract_controller.cpython-312.pyc
+│   │   │   ├── event_controller.cpython-312.pyc
+│   │   │   └── user_controller.cpython-312.pyc
+│   │   ├── auth_controller.py
+│   │   ├── client_controller.py
+│   │   ├── contract_controller.py
+│   │   ├── event_controller.py
+│   │   └── user_controller.py
+│   ├── menus
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-312.pyc
+│   │   │   ├── commercial_menu.cpython-312.pyc
+│   │   │   ├── gestion_menu.cpython-312.pyc
+│   │   │   ├── main_menu.cpython-312.pyc
+│   │   │   ├── support_menu.cpython-312.pyc
+│   │   │   └── utils.cpython-312.pyc
+│   │   ├── commercial_menu.py
+│   │   ├── gestion_menu.py
+│   │   ├── main_menu.py
+│   │   ├── support_menu.py
+│   │   └── utils.py
+│   ├── models
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-312.pyc
+│   │   │   ├── base.cpython-312.pyc
+│   │   │   ├── client.cpython-312.pyc
+│   │   │   ├── contract.cpython-312.pyc
+│   │   │   ├── event.cpython-312.pyc
+│   │   │   ├── role.cpython-312.pyc
+│   │   │   └── user.cpython-312.pyc
+│   │   ├── base.py
+│   │   ├── client.py
+│   │   ├── contract.py
+│   │   ├── event.py
+│   │   ├── role.py
+│   │   └── user.py
+│   ├── repositories
+│   │   ├── __pycache__
+│   │   │   ├── client_repository.cpython-312.pyc
+│   │   │   ├── contract_repository.cpython-312.pyc
+│   │   │   └── event_repository.cpython-312.pyc
+│   │   ├── client_repository.py
+│   │   ├── contract_repository.py
+│   │   └── event_repository.py
+│   ├── services
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-312.pyc
+│   │   │   ├── client_service.cpython-312.pyc
+│   │   │   ├── contract_service.cpython-312.pyc
+│   │   │   └── event_service.cpython-312.pyc
+│   │   ├── client_service.py
+│   │   ├── contract_service.py
+│   │   └── event_service.py
+│   ├── utils
+│   │   ├── __pycache__
+│   │   │   ├── auth.cpython-312.pyc
+│   │   │   ├── helpers.cpython-312.pyc
+│   │   │   ├── jwt_handler.cpython-312.pyc
+│   │   │   └── security.cpython-312.pyc
+│   │   ├── auth.py
+│   │   ├── helpers.py
+│   │   ├── jwt_handler.py
+│   │   └── security.py
+│   └── views
+│       ├── __pycache__
+│       │   ├── client_view.cpython-312.pyc
+│       │   ├── contract_view.cpython-312.pyc
+│       │   ├── event_view.cpython-312.pyc
+│       │   ├── login.cpython-312.pyc
+│       │   ├── main_menu.cpython-312.pyc
+│       │   └── user_view.cpython-312.pyc
+│       ├── client_view.py
+│       ├── contract_view.py
+│       ├── event_view.py
+│       ├── login.py
+│       ├── logout.py
+│       ├── main_menu-old.py
+│       └── user_view.py
+├── database.py
+├── epic_events.db
+├── main.old.py
+├── main.py
+├── requirements.txt
+├── seeds
+│   ├── seed.py
+│   ├── seed_client.py
+│   ├── seed_contracts.py
+│   ├── seed_events.py
+│   └── seed_users.py
+├── tests
+│   ├── __pycache__
+│   │   ├── test_authentication.cpython-312-pytest-7.4.4.pyc
+│   │   ├── test_authentication.cpython-312-pytest-8.4.1.pyc
+│   │   ├── test_client_controller.cpython-312-pytest-8.4.1.pyc
+│   │   ├── test_commercial_menu.cpython-312-pytest-8.4.1.pyc
+│   │   ├── test_contract_controller.cpython-312-pytest-8.4.1.pyc
+│   │   ├── test_event_controller.cpython-312-pytest-8.4.1.pyc
+│   │   └── test_user_controller.cpython-312-pytest-8.4.1.pyc
+│   ├── test_authentication.py
+│   ├── test_client_controller.py
+│   ├── test_commercial_menu.py
+│   ├── test_contract_controller.py
+│   ├── test_event_controller.py
+│   └── test_user_controller.py
+├── tests_perso
+│   ├── __pycache__
+│   │   ├── main_test.cpython-312-pytest-7.4.4.pyc
+│   │   ├── test_create_contract.cpython-312-pytest-7.4.4.pyc
+│   │   ├── test_create_event.cpython-312-pytest-7.4.4.pyc
+│   │   ├── test_create_user.cpython-312-pytest-7.4.4.pyc
+│   │   ├── test_jwt.cpython-312-pytest-7.4.4.pyc
+│   │   └── test_modify_user.cpython-312-pytest-7.4.4.pyc
+│   ├── all_python_files_combined.py
+│   ├── main_test.py
+│   ├── recup.py
+│   ├── test_create_contract.py
+│   ├── test_create_event.py
+│   ├── test_create_user.py
+│   ├── test_jwt.py
+│   └── test_modify_user.py
+└── tree.txt
+
+23 directories, 123 files

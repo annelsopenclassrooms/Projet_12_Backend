@@ -3,6 +3,7 @@ from app.models import Users
 from app.utils.security import verify_password
 from sqlalchemy import or_
 
+
 def authenticate_user(session: Session, username_or_email: str, password: str):
     """
     Authentifie un utilisateur par email ou nom d'utilisateur.
