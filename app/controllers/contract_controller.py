@@ -2,6 +2,7 @@ from app.services.contract_service import get_all_contracts as service_get_all_c
 from app.models import Contracts, Clients, Users
 from datetime import datetime
 from app.models import Contracts
+import sentry_sdk
 
 
 def list_all_contracts(session):
@@ -35,6 +36,11 @@ def create_contract(session, client_id, commercial_id, total_amount, amount_due,
     session.add(contract)
     session.commit()
 
+    # Log Sentry seulement si signé dès création
+    if is_signed:
+        sentry_sdk.capture_message(
+            f"Contrat signé dès création : id={contract.id}, client_id={client.id}, commercial_id={commercial.id}, total_amount={total_amount}"
+        )
     return contract, None
 
 
@@ -42,11 +48,11 @@ def update_contract(session, contract_id, updates, current_user):
     # Find the contract
     contract = session.query(Contracts).filter_by(id=contract_id).first()
     if not contract:
-        return None, f"❌ Contract ID {contract_id} not found."
+        return None, f"❌ Contrat avec l’ID {contract_id} introuvable."
 
     # If user is commercial, verify they can edit this contract
     if current_user.role.name == "commercial" and contract.commercial_id != current_user.id:
-        return None, "⛔ You are not allowed to update this contract."
+        return None, "⛔ Vous n’êtes pas autorisé à modifier ce contrat."
 
     # Apply updates if values are provided
     for field, value in updates.items():
@@ -54,4 +60,12 @@ def update_contract(session, contract_id, updates, current_user):
             setattr(contract, field, value)
 
     session.commit()
+
+    # LOG signature Sentry si signé
+    if updates.get("is_signed") is True:
+        sentry_sdk.capture_message(
+            f"Contrat signé : id={contract.id}, client_id={contract.client_id}, signé par user_id={current_user.id}"
+        )
+
+
     return contract, None

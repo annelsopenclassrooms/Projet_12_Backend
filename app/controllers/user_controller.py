@@ -1,5 +1,6 @@
 from app.models import Users, Roles
 from app.utils.security import hash_password
+import sentry_sdk
 
 
 def create_user(session, username, first_name, last_name, email, password, role_name):
@@ -24,8 +25,13 @@ def create_user(session, username, first_name, last_name, email, password, role_
     )
     session.add(user)
     session.commit()
-    return user, None
 
+    # LOG SENTRY
+    sentry_sdk.capture_message(
+        f"Utilisateur créé : id={user.id}, username={user.username}, email={user.email}, role={role_name}"
+    )
+
+    return user, None
 
 
 def update_user(session, user_id, **updates):
@@ -58,4 +64,10 @@ def update_user(session, user_id, **updates):
         user.role_id = role.id
 
     session.commit()
+
+    # LOG SENTRY
+    sentry_sdk.capture_message(
+        f"Utilisateur modifié : id={user.id}, username={user.username}, email={user.email}, updates={list(updates.keys())}"
+    )
+
     return user, None

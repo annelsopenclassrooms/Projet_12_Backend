@@ -1,4 +1,5 @@
 import os
+from getpass import getpass
 from app.config import SessionLocal
 from app.controllers.auth_controller import authenticate_user
 from app.utils.jwt_handler import create_jwt_token
@@ -9,7 +10,7 @@ def login():
     session = SessionLocal()
     print("== Connexion ==")
     login_input = input("Email ou nom d'utilisateur : ")
-    password = input("Mot de passe : ")
+    password = getpass("Mot de passe : ")  # <<< masque la saisie
 
     user, error = authenticate_user(session, login_input, password)
 
