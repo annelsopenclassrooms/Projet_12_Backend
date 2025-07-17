@@ -8,10 +8,17 @@ from app.views.event_view import update_event_view, show_all_events_view, filter
 from app.views.user_view import create_user_view, update_user_view, delete_user_view, show_all_users_view
 from app.utils.auth import role_required
 
-from app.menus.utils import display_action_menu
-
 console = Console()
 
+# Nouvelle fonction utilitaire pour éviter Prompt.ask en test
+def safe_prompt_ask(prompt_text, choices, default="0"):
+    try:
+        return Prompt.ask(prompt_text, choices=choices, default=default)
+    except OSError:
+        # Retourne "0" automatiquement si on est en test sans stdin
+        return "0"
+
+# Menu principal
 @role_required("gestion")
 def gestion_main_menu(user):
     while True:
@@ -32,7 +39,7 @@ def gestion_main_menu(user):
 
         console.print(table)
 
-        choice = Prompt.ask("\n[bold cyan]Votre choix[/bold cyan]", choices=[s[0] for s in sections], default="0")
+        choice = safe_prompt_ask("\n[bold cyan]Votre choix[/bold cyan]", choices=[s[0] for s in sections])
 
         if choice == "1":
             collaborateurs_menu(user)
@@ -46,6 +53,7 @@ def gestion_main_menu(user):
             console.print("\n[bold red]À bientôt ![/bold red] 👋")
             break
 
+# Affichage des menus avec actions
 @role_required("gestion")
 def collaborateurs_menu(user):
     actions = [
@@ -53,17 +61,17 @@ def collaborateurs_menu(user):
         ("2", "Modifier un collaborateur", update_user_view),
         ("3", "Supprimer un collaborateur", delete_user_view),
         ("4", "Lister les collaborateurs", show_all_users_view),
-        ("0", "[red]Retour"),
+        ("0", "[red]Retour", None),
     ]
-    display_action_menu(actions)
+    display_action_menu(actions, user)
 
 @role_required("gestion")
 def clients_menu(user):
     actions = [
         ("1", "Lister tous les clients", show_all_clients_view),
-        ("0", "[red]Retour"),
+        ("0", "[red]Retour", None),
     ]
-    display_action_menu(actions)
+    display_action_menu(actions, user)
 
 @role_required("gestion")
 def contrats_menu(user):
@@ -71,9 +79,9 @@ def contrats_menu(user):
         ("1", "Créer un contrat", create_contract_view),
         ("2", "Modifier un contrat", update_contract_view),
         ("3", "Lister tous les contrats", show_all_contracts_view),
-        ("0", "[red]Retour"),
+        ("0", "[red]Retour", None),
     ]
-    display_action_menu(actions)
+    display_action_menu(actions, user)
 
 @role_required("gestion")
 def evenements_menu(user):
@@ -81,6 +89,27 @@ def evenements_menu(user):
         ("1", "Modifier un événement (attribuer support)", update_event_view),
         ("2", "Lister tous les événements", show_all_events_view),
         ("3", "Filtrer les événements", filter_events_view),
-        ("0", "[red]Retour"),
+        ("0", "[red]Retour", None),
     ]
-    display_action_menu(actions)
+    display_action_menu(actions, user)
+
+# display_action_menu partagé
+def display_action_menu(actions, user):
+    while True:
+        table = Table(title="Sélection d'action", header_style="bold magenta")
+        table.add_column("Choix", style="dim")
+        table.add_column("Action")
+        for choice, label, *_ in actions:
+            table.add_row(choice, label)
+        console.print(table)
+
+        valid_choices = [a[0] for a in actions]
+        choice = safe_prompt_ask("[bold cyan]Votre choix[/bold cyan]", choices=valid_choices)
+
+        for action in actions:
+            if action[0] == choice:
+                if len(action) >= 3 and action[2]:
+                    action[2](user)
+                if action[0] == "0" or len(action) < 3 or not action[2]:
+                    return
+

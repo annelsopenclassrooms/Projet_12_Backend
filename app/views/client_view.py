@@ -1,126 +1,158 @@
 from app.config import SessionLocal
 from app.controllers.client_controller import list_all_clients, update_client, create_client
 from app.utils.auth import jwt_required, role_required
-from app.utils.helpers import safe_input_email
+from app.utils.helpers import safe_input_email, safe_input_int, safe_input_phone
 from rich.console import Console
 from rich.table import Table
 from app.models import Clients
+from rich.prompt import Prompt, Confirm
 
-from app.utils.helpers import safe_input_int, safe_input_email, safe_input_phone
+console = Console()
 
 @jwt_required
 @role_required("commercial", "gestion", "support")
-def show_all_clients_view(user):
+def show_all_clients_view(current_user, *args, **kwargs):
+    """Affiche la liste de tous les clients accessibles"""
     session = SessionLocal()
-    clients = list_all_clients(session)
+    try:
+        clients = list_all_clients(session)
 
-    console = Console()
+        if not clients:
+            console.print("[red]Aucun client trouvé.[/red]")
+            return
 
-    if not clients:
-        console.print("[red]Aucun client trouvé.[/red]")
-        return
+        table = Table(title=f"📋 Clients accessibles par {current_user.first_name}", 
+                     header_style="bold magenta")
+        table.add_column("ID", style="cyan", justify="right")
+        table.add_column("Prénom", style="yellow")
+        table.add_column("Nom", style="yellow")
+        table.add_column("Email", style="blue")
+        table.add_column("Entreprise", style="green")
 
-    table = Table(title=f"📋 Clients accessibles par {user.first_name}", header_style="bold magenta")
-    table.add_column("ID", style="cyan", justify="right")
-    table.add_column("Prénom", style="yellow")
-    table.add_column("Nom", style="yellow")
-    table.add_column("Email", style="blue")
-    table.add_column("Entreprise", style="green")
+        for client in clients:
+            table.add_row(
+                str(client.id),
+                client.first_name,
+                client.last_name,
+                client.email,
+                client.company_name
+            )
 
-    for client in clients:
-        table.add_row(
-            str(client.id),
-            client.first_name,
-            client.last_name,
-            client.email,
-            client.company_name
+        console.print(table)
+    finally:
+        session.close()
+
+@jwt_required
+@role_required("commercial")
+def create_client_view(current_user, *args, **kwargs):
+    """Crée un nouveau client associé au commercial connecté"""
+    session = SessionLocal()
+    try:
+        console.print("\n[bold]=== Création d'un nouveau client ===[/bold]")
+
+        first_name = Prompt.ask("Prénom")
+        last_name = Prompt.ask("Nom")
+        email = safe_input_email("Email")
+        phone = Prompt.ask("Téléphone")
+        company_name = Prompt.ask("Nom de l'entreprise")
+
+        client, error = create_client(
+            session,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            phone=phone,
+            company_name=company_name,
+            commercial_id=current_user.id  # Assignation automatique
         )
 
-    console.print(table)
+        if error:
+            console.print(f"[red]{error}[/red]")
+        else:
+            console.print(f"[green]✅ Client créé : {client.first_name} {client.last_name} (ID: {client.id})[/green]")
+    finally:
+        session.close()
 
 @jwt_required
 @role_required("commercial")
-def create_client_view(current_user):
+def update_client_view(current_user, *args, **kwargs):
+    """Met à jour un client existant (uniquement ceux du commercial connecté)"""
     session = SessionLocal()
+    try:
+        console.print("\n[bold]=== Mise à jour d'un client ===[/bold]")
 
-    print("\n=== Create a new client ===")
+        # 🔒 Ne montrer que les clients du commercial connecté
+        clients = session.query(Clients).filter_by(commercial_id=current_user.id).all()
 
-    first_name = input("First name: ").strip()
-    last_name = input("Last name: ").strip()
-    email = safe_input_email("Email: ")
-    phone = input("Phone: ").strip()
-    company_name = input("Company name: ").strip()
+        if not clients:
+            console.print("[yellow]⚠️ Vous n'avez aucun client associé.[/yellow]")
+            return
 
-    client, error = create_client(
-        session,
-        first_name=first_name,
-        last_name=last_name,
-        email=email,
-        phone=phone,
-        company_name=company_name,
-        commercial_id=current_user.id  # Automatically assign current user
-    )
+        # Affichage tableau
+        table = Table(title="Vos clients", header_style="bold magenta")
+        table.add_column("ID", style="cyan")
+        table.add_column("Nom complet")
+        table.add_column("Email")
+        table.add_column("Entreprise")
+        
+        for client in clients:
+            table.add_row(
+                str(client.id),
+                f"{client.first_name} {client.last_name}",
+                client.email,
+                client.company_name
+            )
+        
+        console.print(table)
 
-    if error:
-        print(error)
-    else:
-        print(f"✅ Client created: {client.first_name} {client.last_name} (ID: {client.id})")
+        # Sélection client
+        client_id = safe_input_int("\nID du client à modifier")
+        if not client_id:
+            return
 
+        client = session.query(Clients).filter_by(id=client_id, commercial_id=current_user.id).first()
+        if not client:
+            console.print("[red]❌ Client introuvable ou non autorisé.[/red]")
+            return
 
-@jwt_required
-@role_required("commercial")
-def update_client_view(current_user):
-    session = SessionLocal()
+        # Affichage infos actuelles
+        console.print(f"\n[bold]Informations actuelles du client ID {client.id}:[/bold]")
+        info_table = Table(show_header=False)
+        info_table.add_column("Champ", style="cyan")
+        info_table.add_column("Valeur")
+        
+        info_table.add_row("Prénom", client.first_name)
+        info_table.add_row("Nom", client.last_name)
+        info_table.add_row("Email", client.email)
+        info_table.add_row("Téléphone", client.phone or "Non renseigné")
+        info_table.add_row("Société", client.company_name)
+        
+        console.print(info_table)
 
-    print("\n=== Mise à jour d'un client ===")
+        # Saisie modifications
+        updates = {
+            "first_name": Prompt.ask("Nouveau prénom", default=client.first_name),
+            "last_name": Prompt.ask("Nouveau nom", default=client.last_name),
+            "company_name": Prompt.ask("Nouvelle société", default=client.company_name),
+        }
 
-    # 🔒 Ne montrer que les clients du commercial connecté
-    clients = session.query(Clients).filter_by(commercial_id=current_user.id).all()
+        # Gestion spéciale email et téléphone
+        new_email = Prompt.ask("Nouvel email", default=client.email)
+        if new_email != client.email:
+            updates["email"] = safe_input_email("Confirmer le nouvel email", default=new_email)
 
-    if not clients:
-        print("⚠️ Vous n'avez aucun client associé.")
-        return
+        new_phone = Prompt.ask("Nouveau téléphone", default=client.phone or "")
+        if new_phone != (client.phone or ""):
+            updates["phone"] = safe_input_phone("Confirmer le nouveau téléphone", default=new_phone)
 
-    print("\n📌 Liste de vos clients :")
-    for client in clients:
-        print(f"ID: {client.id} | {client.first_name} {client.last_name} | {client.email}")
-
-    client_id = safe_input_int("\nEntrez l'ID du client à modifier : ")
-
-    client = session.query(Clients).filter_by(id=client_id, commercial_id=current_user.id).first()
-    if not client:
-        print("❌ Client introuvable ou non autorisé.")
-        return
-
-    print(f"\nInformations actuelles du client ID {client.id}:")
-    print(f"Prénom : {client.first_name}")
-    print(f"Nom : {client.last_name}")
-    print(f"Email : {client.email}")
-    print(f"Téléphone : {client.phone}")
-    print(f"Société : {client.company_name}")
-
-    first_name = input(f"Nouveau prénom [{client.first_name}]: ").strip() or None
-    last_name = input(f"Nouveau nom [{client.last_name}]: ").strip() or None
-
-    email_input = input(f"Nouvel email [{client.email}]: ").strip()
-    email = safe_input_email("Confirmer le nouvel email : ") if email_input and email_input != client.email else None
-
-    phone_input = input(f"Nouveau téléphone [{client.phone}]: ").strip()
-    phone = safe_input_phone("Confirmer le nouveau téléphone : ") if phone_input and phone_input != client.phone else None
-
-    company_name = input(f"Nouvelle société [{client.company_name}]: ").strip() or None
-
-    updates = {
-        "first_name": first_name,
-        "last_name": last_name,
-        "email": email,
-        "phone": phone,
-        "company_name": company_name,
-    }
-
-    updated_client, error = update_client(session, client_id, updates, current_user)
-
-    if error:
-        print(f"❌ {error}")
-    else:
-        print(f"✅ Client mis à jour : {updated_client.first_name} {updated_client.last_name}")
+        # Confirmation
+        if Confirm.ask("\n[bold]Confirmer la modification ?[/bold]", default=False):
+            updated_client, error = update_client(session, client_id, updates, current_user)
+            if error:
+                console.print(f"[red]{error}[/red]")
+            else:
+                console.print(f"[green]✅ Client mis à jour : {updated_client.first_name} {updated_client.last_name}[/green]")
+        else:
+            console.print("[yellow]Modification annulée[/yellow]")
+    finally:
+        session.close()

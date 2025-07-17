@@ -3,276 +3,312 @@ from app.controllers.contract_controller import list_all_contracts, create_contr
 from app.models import Clients, Users, Contracts
 from app.utils.auth import jwt_required, role_required
 from app.utils.helpers import safe_input_int, safe_input_float, safe_input_yes_no
-
 from rich.console import Console
 from rich.table import Table
-
-console = Console()
-
-
-@jwt_required
-def show_all_contracts_view(user):
-    session = SessionLocal()
-    contracts = list_all_contracts(session)
-
-    if not contracts:
-        console.print("[yellow]Aucun contract trouvé.[/yellow]")
-        return
-
-    table = Table(title=f"📋 Contracts accessibles par {user.first_name}", show_lines=True)
-    table.add_column("ID", justify="right")
-    table.add_column("Client", style="cyan")
-    table.add_column("Signé", justify="center")
-    table.add_column("Montant dû", justify="right")
-    table.add_column("Créé le", style="dim")
-    table.add_column("Prénom Client", style="magenta")
-    table.add_column("Nom client", style="magenta")
-
-    for contract in contracts:
-        table.add_row(
-            str(contract.id),
-            contract.client.company_name,
-            "✅" if contract.is_signed else "❌",
-            f"{contract.amount_due:.2f}",
-            str(contract.date_created.date()),
-            contract.client.first_name,
-            contract.client.last_name
-        )
-
-    console.print(table)
-
-@jwt_required
-@role_required("gestion", "commercial")
-def create_contract_view(current_user):
-    session = SessionLocal()
-
-    console.print("\n[bold cyan]=== Créer un nouveau contrat ===[/bold cyan]")
-
-    # Liste des clients
-    clients = session.query(Clients).all()
-    client_table = Table(title="📌 Clients disponibles")
-    client_table.add_column("ID", justify="right")
-    client_table.add_column("Nom")
-    client_table.add_column("Email")
-
-    for client in clients:
-        client_table.add_row(
-            str(client.id),
-            f"{client.first_name} {client.last_name}",
-            client.email
-        )
-
-    console.print(client_table)
-    client_id = safe_input_int("ID du client : ")
-
-    # Liste des commerciaux
-    commercials = session.query(Users).filter_by(role_id=2).all()
-    comm_table = Table(title="📌 Commerciaux disponibles")
-    comm_table.add_column("ID", justify="right")
-    comm_table.add_column("Nom")
-    comm_table.add_column("Email")
-
-    for c in commercials:
-        comm_table.add_row(
-            str(c.id),
-            f"{c.first_name} {c.last_name}",
-            c.email
-        )
-
-    console.print(comm_table)
-    commercial_id = safe_input_int("ID du commercial : ")
-
-    # Montants avec validation
-    total_amount = safe_input_float("Montant total du contrat : ")
-
-    while True:
-        amount_due = safe_input_float("Montant restant dû : ")
-        if amount_due <= total_amount:
-            break
-        console.print("[red]❌ Le montant dû ne peut pas être supérieur au montant total.[/red]")
-
-    is_signed = safe_input_yes_no("Le contrat est-il signé ? (y/n) [n] : ", default=False)
-
-    contract, error = create_contract(session, client_id, commercial_id, total_amount, amount_due, is_signed)
-
-    if error:
-        console.print(f"[red]❌ {error}[/red]")
-    else:
-        console.print(f"[green]✅ Contrat créé avec succès : ID {contract.id} pour {contract.client.first_name} {contract.client.last_name}[/green]")
-
-
-@jwt_required
-@role_required("gestion", "commercial")
-def update_contract_view(current_user):
-    session = SessionLocal()
-
-    console.print("\n[bold cyan]=== Modifier un contrat existant ===[/bold cyan]")
-
-    contracts = session.query(Contracts).all()
-    contract_table = Table(title="📌 Contrats existants")
-    contract_table.add_column("ID", justify="right")
-    contract_table.add_column("Client")
-    contract_table.add_column("Montant total", justify="right")
-    contract_table.add_column("Signé", justify="center")
-
-    for contract in contracts:
-        client_name = f"{contract.client.first_name} {contract.client.last_name}"
-        contract_table.add_row(
-            str(contract.id),
-            client_name,
-            f"{contract.total_amount:.2f}",
-            "✅" if contract.is_signed else "❌"
-        )
-
-    console.print(contract_table)
-    contract_id = safe_input_int("\nID du contrat à modifier : ")
-
-    contract = session.query(Contracts).filter_by(id=contract_id).first()
-    if not contract:
-        console.print(f"[red]❌ Contrat avec ID {contract_id} introuvable.[/red]")
-        return
-
-    detail_table = Table(title=f"📝 Détails du contrat ID {contract.id}")
-    detail_table.add_column("Champ")
-    detail_table.add_column("Valeur")
-
-    detail_table.add_row("Client", f"{contract.client.first_name} {contract.client.last_name}")
-    detail_table.add_row("Commercial ID", str(contract.commercial_id))
-    detail_table.add_row("Montant total", f"{contract.total_amount:.2f}")
-    detail_table.add_row("Montant dû", f"{contract.amount_due:.2f}")
-    detail_table.add_row("Signé", "✅ Oui" if contract.is_signed else "❌ Non")
-
-    console.print(detail_table)
-
-    # --- Demande des nouvelles valeurs, saut possible avec Entrée ---
-    total_input = input(f"Nouveau montant total [{contract.total_amount}]: ").strip()
-    total_amount = float(total_input) if total_input else contract.total_amount
-
-    while True:
-        due_input = input(f"Nouveau montant dû [{contract.amount_due}]: ").strip()
-        if not due_input:
-            amount_due = contract.amount_due
-            break
-
-        try:
-            amount_due = float(due_input)
-        except ValueError:
-            console.print("[red]⛔ Veuillez entrer un nombre valide.[/red]")
-            continue
-
-        if amount_due > total_amount:
-            console.print("[red]❌ Le montant dû ne peut pas dépasser le montant total.[/red]")
-        else:
-            break
-
-    is_signed = safe_input_yes_no(
-        f"Le contrat est-il signé (y/n) [actuellement {'Oui' if contract.is_signed else 'Non'}] : ",
-        default=contract.is_signed
-    )
-
-    updates = {
-        "total_amount": total_amount,
-        "amount_due": amount_due,
-        "is_signed": is_signed
-    }
-
-    updated_contract, error = update_contract(session, contract_id, updates, current_user)
-
-    if error:
-        console.print(f"[red]❌ {error}[/red]")
-    else:
-        console.print(f"[green]✅ Contrat mis à jour avec succès.[/green]")
-
-
+from rich.prompt import Prompt, Confirm
 from datetime import datetime
 from sqlalchemy import or_
-from app.config import SessionLocal
-from app.models import Contracts, Clients
-from app.utils.auth import jwt_required, role_required
-from app.utils.helpers import safe_input_float
-from rich.console import Console
-from rich.table import Table
 
 console = Console()
 
+@jwt_required
+def show_all_contracts_view(current_user, *args, **kwargs):
+    """Affiche tous les contrats accessibles"""
+    session = SessionLocal()
+    try:
+        contracts = list_all_contracts(session)
+
+        if not contracts:
+            console.print("[yellow]Aucun contrat trouvé.[/yellow]")
+            return
+
+        table = Table(title=f"📋 Contrats accessibles par {current_user.first_name}", 
+                     show_lines=True, header_style="bold magenta")
+        table.add_column("ID", justify="right")
+        table.add_column("Client", style="cyan")
+        table.add_column("Signé", justify="center")
+        table.add_column("Montant dû", justify="right")
+        table.add_column("Montant total", justify="right")
+        table.add_column("Créé le", style="dim")
+
+        for contract in contracts:
+            table.add_row(
+                str(contract.id),
+                f"{contract.client.first_name} {contract.client.last_name}",
+                "✅" if contract.is_signed else "❌",
+                f"{contract.amount_due:.2f}",
+                f"{contract.total_amount:.2f}",
+                str(contract.date_created.date())
+            )
+
+        console.print(table)
+    finally:
+        session.close()
 
 @jwt_required
 @role_required("gestion", "commercial")
-def filter_contracts_view(current_user):
+def create_contract_view(current_user, *args, **kwargs):
+    """Crée un nouveau contrat"""
     session = SessionLocal()
+    try:
+        console.print("\n[bold cyan]=== Créer un nouveau contrat ===[/bold cyan]")
 
-    console.print("\n[bold cyan]=== Filtrer les contrats ===[/bold cyan]")
+        # Liste des clients
+        clients = session.query(Clients).all()
+        client_table = Table(title="📌 Clients disponibles", header_style="bold blue")
+        client_table.add_column("ID", justify="right")
+        client_table.add_column("Nom complet")
+        client_table.add_column("Entreprise")
+        client_table.add_column("Email")
 
-    menu = [
-        ("1", "Contrats non signés"),
-        ("2", "Contrats non entièrement payés"),
-        ("3", "Contrats non signés ET non entièrement payés"),
-        ("4", "Contrats signés"),
-        ("5", "Contrats entièrement payés"),
-        ("0", "[red]Retour"),
-    ]
+        for client in clients:
+            client_table.add_row(
+                str(client.id),
+                f"{client.first_name} {client.last_name}",
+                client.company_name,
+                client.email
+            )
 
-    table = Table(title="🔍 Filtres disponibles", show_header=True, header_style="bold magenta")
-    table.add_column("Choix", style="dim")
-    table.add_column("Filtre")
+        console.print(client_table)
+        client_id = safe_input_int("ID du client : ")
 
-    for opt in menu:
-        table.add_row(*opt)
+        # Liste des commerciaux (sauf pour la gestion)
+        if current_user.role.name == "commercial":
+            commercial_id = current_user.id
+        else:
+            commercials = session.query(Users).filter_by(role_id=2).all()
+            comm_table = Table(title="📌 Commerciaux disponibles", header_style="bold blue")
+            comm_table.add_column("ID", justify="right")
+            comm_table.add_column("Nom complet")
+            comm_table.add_column("Email")
 
-    console.print(table)
+            for c in commercials:
+                comm_table.add_row(
+                    str(c.id),
+                    f"{c.first_name} {c.last_name}",
+                    c.email
+                )
 
-    choice = input("Votre choix : ").strip()
+            console.print(comm_table)
+            commercial_id = safe_input_int("ID du commercial : ")
 
-    if choice == "0":
-        return
+        # Saisie des montants
+        total_amount = safe_input_float("Montant total du contrat : ")
+        amount_due = safe_input_float("Montant restant dû : ")
+        
+        while amount_due > total_amount:
+            console.print("[red]❌ Le montant dû ne peut pas être supérieur au montant total.[/red]")
+            amount_due = safe_input_float("Montant restant dû : ")
 
-    query = session.query(Contracts)
+        is_signed = Confirm.ask("Le contrat est-il signé ?", default=False)
 
-    # Restreindre aux contrats du commercial, s'il y a lieu
-    if current_user.role.name == "commercial":
-        query = query.join(Clients).filter(Clients.commercial_id == current_user.id)
+        # Confirmation
+        console.print("\n[bold]Récapitulatif du contrat :[/bold]")
+        console.print(f"- Client ID: {client_id}")
+        console.print(f"- Commercial ID: {commercial_id}")
+        console.print(f"- Montant total: {total_amount:.2f}")
+        console.print(f"- Montant dû: {amount_due:.2f}")
+        console.print(f"- Signé: {'Oui' if is_signed else 'Non'}")
 
-    if choice == "1":
-        query = query.filter(Contracts.is_signed == False)
+        if Confirm.ask("\nConfirmer la création ?", default=True):
+            contract, error = create_contract(
+                session, 
+                client_id, 
+                commercial_id, 
+                total_amount, 
+                amount_due, 
+                is_signed
+            )
 
-    elif choice == "2":
-        query = query.filter(Contracts.amount_due > 0)
+            if error:
+                console.print(f"[red]❌ {error}[/red]")
+            else:
+                console.print(f"[green]✅ Contrat créé avec succès : ID {contract.id}[/green]")
+    finally:
+        session.close()
 
-    elif choice == "3":
-        query = query.filter(Contracts.is_signed == False, Contracts.amount_due > 0)
+@jwt_required
+@role_required("gestion", "commercial")
+def update_contract_view(current_user, *args, **kwargs):
+    """Modifie un contrat existant"""
+    session = SessionLocal()
+    try:
+        console.print("\n[bold cyan]=== Modifier un contrat existant ===[/bold cyan]")
 
-    elif choice == "4":
-        query = query.filter(Contracts.is_signed == True)
+        # Filtrage selon le rôle
+        if current_user.role.name == "commercial":
+            contracts = session.query(Contracts).join(Clients).filter(
+                Clients.commercial_id == current_user.id
+            ).all()
+        else:
+            contracts = session.query(Contracts).all()
 
-    elif choice == "5":
-        query = query.filter(Contracts.amount_due == 0)
+        if not contracts:
+            console.print("[yellow]Aucun contrat disponible pour modification.[/yellow]")
+            return
 
-    else:
-        console.print("[red]❌ Choix invalide.[/red]")
-        return
+        # Affichage liste
+        contract_table = Table(title="📌 Contrats disponibles", header_style="bold blue")
+        contract_table.add_column("ID", justify="right")
+        contract_table.add_column("Client")
+        contract_table.add_column("Montant total", justify="right")
+        contract_table.add_column("Signé", justify="center")
 
-    results = query.all()
+        for contract in contracts:
+            contract_table.add_row(
+                str(contract.id),
+                f"{contract.client.first_name} {contract.client.last_name}",
+                f"{contract.total_amount:.2f}",
+                "✅" if contract.is_signed else "❌"
+            )
 
-    if not results:
-        console.print("[yellow]Aucun contrat trouvé selon ce filtre.[/yellow]")
-        return
+        console.print(contract_table)
+        contract_id = safe_input_int("\nID du contrat à modifier : ")
 
-    table = Table(title="📋 Résultat du filtre", show_lines=True)
-    table.add_column("ID", justify="right")
-    table.add_column("Client", style="cyan")
-    table.add_column("Signé", justify="center")
-    table.add_column("Montant dû", justify="right")
-    table.add_column("Montant total", justify="right")
-    table.add_column("Créé le", style="dim")
+        # Récupération contrat
+        contract = session.query(Contracts).get(contract_id)
+        if not contract:
+            console.print(f"[red]❌ Contrat avec ID {contract_id} introuvable.[/red]")
+            return
 
-    for c in results:
-        table.add_row(
-            str(c.id),
-            f"{c.client.first_name} {c.client.last_name}",
-            "✅" if c.is_signed else "❌",
-            f"{c.amount_due:.2f}",
-            f"{c.total_amount:.2f}",
-            str(c.date_created.date()),
-        )
+        # Vérification des permissions
+        if (current_user.role.name == "commercial" and 
+            contract.client.commercial_id != current_user.id):
+            console.print("[red]❌ Vous n'avez pas accès à ce contrat.[/red]")
+            return
 
-    console.print(table)
+        # Affichage détails
+        detail_table = Table(title=f"📝 Détails du contrat ID {contract.id}", 
+                           show_header=False)
+        detail_table.add_column("Champ", style="cyan")
+        detail_table.add_column("Valeur")
+
+        detail_table.add_row("Client", f"{contract.client.first_name} {contract.client.last_name}")
+        detail_table.add_row("Commercial", f"{contract.client.commercial.first_name} {contract.client.commercial.last_name}")
+        detail_table.add_row("Montant total", f"{contract.total_amount:.2f}")
+        detail_table.add_row("Montant dû", f"{contract.amount_due:.2f}")
+        detail_table.add_row("Signé", "✅ Oui" if contract.is_signed else "❌ Non")
+
+        console.print(detail_table)
+
+        # Saisie modifications
+        updates = {
+            "total_amount": safe_input_float(
+                "Nouveau montant total", 
+                default=contract.total_amount
+            ),
+            "amount_due": safe_input_float(
+                "Nouveau montant dû", 
+                default=contract.amount_due
+            ),
+            "is_signed": Confirm.ask(
+                "Le contrat est-il signé ?", 
+                default=contract.is_signed
+            )
+        }
+
+        # Validation montant dû
+        while updates["amount_due"] > updates["total_amount"]:
+            console.print("[red]❌ Le montant dû ne peut dépasser le montant total.[/red]")
+            updates["amount_due"] = safe_input_float(
+                "Nouveau montant dû", 
+                default=contract.amount_due
+            )
+
+        # Confirmation
+        if Confirm.ask("\n[bold]Confirmer la modification ?[/bold]", default=True):
+            updated_contract, error = update_contract(
+                session, 
+                contract_id, 
+                updates, 
+                current_user
+            )
+
+            if error:
+                console.print(f"[red]❌ {error}[/red]")
+            else:
+                console.print(f"[green]✅ Contrat ID {updated_contract.id} mis à jour avec succès.[/green]")
+        else:
+            console.print("[yellow]Modification annulée.[/yellow]")
+    finally:
+        session.close()
+
+@jwt_required
+@role_required("gestion", "commercial")
+def filter_contracts_view(current_user, *args, **kwargs):
+    """Filtre les contrats selon différents critères"""
+    session = SessionLocal()
+    try:
+        console.print("\n[bold cyan]=== Filtrer les contrats ===[/bold cyan]")
+
+        # Menu des filtres
+        filters = {
+            "1": ("Contrats non signés", Contracts.is_signed == False),
+            "2": ("Contrats non entièrement payés", Contracts.amount_due > 0),
+            "3": ("Contrats non signés ET non payés", 
+                 (Contracts.is_signed == False, Contracts.amount_due > 0)),
+            "4": ("Contrats signés", Contracts.is_signed == True),
+            "5": ("Contrats entièrement payés", Contracts.amount_due == 0)
+        }
+
+        table = Table(title="🔍 Filtres disponibles", header_style="bold magenta")
+        table.add_column("Choix", style="dim")
+        table.add_column("Description")
+
+        for key, (desc, _) in filters.items():
+            table.add_row(key, desc)
+        table.add_row("0", "[red]Retour[/red]")
+
+        console.print(table)
+
+        choice = Prompt.ask("Votre choix", choices=["0", "1", "2", "3", "4", "5"], default="0")
+
+        if choice == "0":
+            return
+
+        # Construction de la requête
+        query = session.query(Contracts)
+        
+        # Filtre par rôle
+        if current_user.role.name == "commercial":
+            query = query.join(Clients).filter(Clients.commercial_id == current_user.id)
+
+        # Application du filtre
+        filter_cond = filters[choice][1]
+        if isinstance(filter_cond, tuple):
+            query = query.filter(*filter_cond)
+        else:
+            query = query.filter(filter_cond)
+
+        # Exécution
+        results = query.order_by(Contracts.date_created.desc()).all()
+
+        if not results:
+            console.print("[yellow]Aucun contrat trouvé avec ce filtre.[/yellow]")
+            return
+
+        # Affichage résultats
+        result_table = Table(title=f"📋 Résultats - {filters[choice][0]}", 
+                           show_lines=True, header_style="bold green")
+        result_table.add_column("ID", justify="right")
+        result_table.add_column("Client")
+        result_table.add_column("Commercial")
+        result_table.add_column("Total", justify="right")
+        result_table.add_column("Dû", justify="right")
+        result_table.add_column("Signé", justify="center")
+        result_table.add_column("Créé le", style="dim")
+
+        for contract in results:
+            result_table.add_row(
+                str(contract.id),
+                f"{contract.client.first_name} {contract.client.last_name}",
+                f"{contract.client.commercial.first_name} {contract.client.commercial.last_name}",
+                f"{contract.total_amount:.2f}",
+                f"{contract.amount_due:.2f}",
+                "✅" if contract.is_signed else "❌",
+                contract.date_created.strftime("%Y-%m-%d")
+            )
+
+        console.print(result_table)
+    finally:
+        session.close()
