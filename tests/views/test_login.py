@@ -1,7 +1,6 @@
 import pytest
 import builtins
 import app.views.login as login_view
-from pathlib import Path
 
 
 def test_login_success(monkeypatch, tmp_path):

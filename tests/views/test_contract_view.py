@@ -1,41 +1,17 @@
-# tests/conftest.py
-
 import pytest
+from app.views import contract_view as contract_view_module
 
-
-# === Rôles et utilisateurs ===
-
+# ======= FAKE CLASSES =======
 class FakeRole:
-    def __init__(self, name):
+    def __init__(self, name="commercial"):
         self.name = name
 
-
 class FakeUser:
-    def __init__(self, role_name="commercial", user_id=1, name="Alice", lastname="Martin"):
-        self.id = user_id
-        self.first_name = name
-        self.last_name = lastname
-        self.email = f"{name.lower()}@test.com"
-        self.role = FakeRole(role_name)
-        self.department = role_name
-
-
-@pytest.fixture
-def commercial_user():
-    return FakeUser(role_name="commercial")
-
-
-@pytest.fixture
-def support_user():
-    return FakeUser(role_name="support")
-
-
-@pytest.fixture
-def manager_user():
-    return FakeUser(role_name="gestion")
-
-
-# === Clients et contrats ===
+    def __init__(self, id=1, first_name="Fabrice", last_name="User", role=None):
+        self.id = id
+        self.first_name = first_name
+        self.last_name = last_name
+        self.role = role or FakeRole()
 
 class FakeClient:
     def __init__(self, first_name="Jean", last_name="Client", commercial=None):
@@ -44,36 +20,47 @@ class FakeClient:
         self.commercial = commercial or FakeUser()
         self.commercial_id = self.commercial.id
 
-
 class FakeContract:
-    def __init__(self, id, client, total_amount=1000.0, amount_due=500.0, is_signed=False):
-        self.id = id
+    def __init__(self, contract_id, client, total_amount=1000.0, amount_due=200.0):
+        self.id = contract_id
         self.client = client
         self.total_amount = total_amount
         self.amount_due = amount_due
-        self.is_signed = is_signed
-        self.date_created = __import__("datetime").datetime.now()
+        self.is_signed = False
+
+# ======= FAKE HELPERS =======
+def fake_confirm_ask(prompt="", default=False):
+    return True  # On force la confirmation
+
+def fake_console_print(*args, **kwargs):
+    return None  # On ignore les prints
+
+def fake_safe_input_float_factory(values):
+    def fake_safe_input_float(*args, **kwargs):
+        return values.pop(0)
+    return fake_safe_input_float
+
+def fake_safe_input_int(prompt, default=None):
+    return 1
+
+def fake_update_contract(session, contract_id, updates, current_user):
+    # On récupère le contrat
+    contract = next((c for c in session.contracts if c.id == contract_id), None)
+    if not contract:
+        return None, "Contract not found"
+
+    # Mise à jour des champs
+    contract.total_amount = updates.get("total_amount", contract.total_amount)
+    contract.amount_due = updates.get("amount_due", contract.amount_due)
+    contract.is_signed = updates.get("is_signed", contract.is_signed)
+
+    return contract, None  # <-- 2 valeurs
 
 
-@pytest.fixture
-def fake_contracts(commercial_user):
-    return [
-        FakeContract(1, FakeClient("Jean", commercial=commercial_user)),
-        FakeContract(2, FakeClient("Marie", commercial=commercial_user)),
-    ]
-
-
-# === Faux ORM SQLAlchemy (Session, Query) ===
-
+# ======= FAKE SESSION =======
 class FakeQuery:
-    def __init__(self, contracts):
-        self.contracts = contracts
-
-    def all(self):
-        return self.contracts
-
-    def join(self, *args, **kwargs):
-        return self
+    def __init__(self, data):
+        self.data = data
 
     def filter(self, *args, **kwargs):
         return self
@@ -81,56 +68,72 @@ class FakeQuery:
     def filter_by(self, **kwargs):
         return self
 
-    def get(self, contract_id):
-        for c in self.contracts:
-            if c.id == contract_id:
-                return c
-        return None
+    def join(self, *args, **kwargs):
+        return self
 
+    def all(self):
+        return self.data
+
+    def first(self):
+        return self.data[0] if self.data else None
+
+    def get(self, contract_id):
+        return next((obj for obj in self.data if getattr(obj, "id", None) == contract_id), None)
 
 class FakeSession:
     def __init__(self, contracts):
-        self._contracts = contracts
+        self.contracts = contracts
 
-    def query(self, model):
-        return FakeQuery(self._contracts)
+    def query(self, *args, **kwargs):
+        return FakeQuery(self.contracts)
 
-    def commit(self): pass
-    def close(self): pass
+    def commit(self):
+        return None
 
+    def close(self):
+        return None
 
-def fake_session_factory(contracts):
-    def _factory():
-        return FakeSession(contracts)
-    return _factory
+def fake_session_factory(fake_contracts):
+    def fake_session():
+        return FakeSession(fake_contracts)
+    return fake_session
 
+# ======= TESTS =======
+def test_update_contract_view(monkeypatch):
+    fake_user = FakeUser()
+    fake_contracts = [FakeContract(1, FakeClient("Jean", commercial=fake_user))]
 
-# === Utilitaires ===
+    # Patch auth
+    monkeypatch.setattr("app.utils.auth.get_current_user", lambda: fake_user)
 
-def fake_confirm_ask(message, default=False):
-    return True
+    # Patch session
+    monkeypatch.setattr(contract_view_module, "SessionLocal", fake_session_factory(fake_contracts))
 
+    # Patch Confirm.ask
+    monkeypatch.setattr(
+        contract_view_module,
+        "Confirm",
+        type("FakeConfirm", (), {"ask": staticmethod(fake_confirm_ask)})
+    )
 
-def fake_console_print(*args, **kwargs):
-    pass
+    # Patch console.print
+    monkeypatch.setattr(contract_view_module.Console, "print", fake_console_print)
 
+    # Patch inputs
+    monkeypatch.setattr(
+        contract_view_module.helpers,
+        "safe_input_float",
+        fake_safe_input_float_factory([1500.0, 300.0])
+    )
+    monkeypatch.setattr(contract_view_module.helpers, "safe_input_int", fake_safe_input_int)
 
-def fake_safe_input_float_factory(values):
-    iterator = iter(values)
-    def _float(prompt, default=None):
-        return next(iterator)
-    return _float
+    # Patch update_contract
+    monkeypatch.setattr(contract_view_module, "update_contract", fake_update_contract)
 
+    # Exécution
+    contract_view_module.update_contract_view(fake_user)
 
-def fake_safe_input_int(prompt):
-    return 1  # ID du contrat à modifier
-
-
-def fake_update_contract(session, contract_id, updates, user):
-    for c in session._contracts:
-        if c.id == contract_id:
-            c.total_amount = updates.get("total_amount", c.total_amount)
-            c.amount_due = updates.get("amount_due", c.amount_due)
-            c.is_signed = updates.get("is_signed", c.is_signed)
-            return c, None
-    return None, "Contract not found"
+    # Vérification
+    selected_contract = fake_contracts[0]
+    assert selected_contract.total_amount == 1500.0
+    assert selected_contract.amount_due == 300.0
