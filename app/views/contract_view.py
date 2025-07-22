@@ -9,6 +9,11 @@ from rich.prompt import Prompt, Confirm
 from datetime import datetime
 from sqlalchemy import or_
 
+from app.utils import helpers
+from rich.console import Console
+from rich.table import Table
+from rich.prompt import Confirm
+
 console = Console()
 
 @jwt_required
@@ -127,6 +132,10 @@ def create_contract_view(current_user, *args, **kwargs):
     finally:
         session.close()
 
+
+
+
+
 @jwt_required
 @role_required("gestion", "commercial")
 def update_contract_view(current_user, *args, **kwargs):
@@ -163,7 +172,9 @@ def update_contract_view(current_user, *args, **kwargs):
             )
 
         console.print(contract_table)
-        contract_id = safe_input_int("\nID du contrat à modifier : ")
+
+        # Remplacement Prompt.ask par safe_input_int (plus facile à tester)
+        contract_id = helpers.safe_input_int("\nID du contrat à modifier : ")
 
         # Récupération contrat
         contract = session.query(Contracts).get(contract_id)
@@ -193,11 +204,11 @@ def update_contract_view(current_user, *args, **kwargs):
 
         # Saisie modifications
         updates = {
-            "total_amount": safe_input_float(
+            "total_amount": helpers.safe_input_float(
                 "Nouveau montant total", 
                 default=contract.total_amount
             ),
-            "amount_due": safe_input_float(
+            "amount_due": helpers.safe_input_float(
                 "Nouveau montant dû", 
                 default=contract.amount_due
             ),
@@ -210,7 +221,7 @@ def update_contract_view(current_user, *args, **kwargs):
         # Validation montant dû
         while updates["amount_due"] > updates["total_amount"]:
             console.print("[red]❌ Le montant dû ne peut dépasser le montant total.[/red]")
-            updates["amount_due"] = safe_input_float(
+            updates["amount_due"] = helpers.safe_input_float(
                 "Nouveau montant dû", 
                 default=contract.amount_due
             )
@@ -232,6 +243,11 @@ def update_contract_view(current_user, *args, **kwargs):
             console.print("[yellow]Modification annulée.[/yellow]")
     finally:
         session.close()
+
+
+
+
+
 
 @jwt_required
 @role_required("gestion", "commercial")
