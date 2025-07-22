@@ -4,6 +4,7 @@ all_files.py
 .token
 tests_perso.py/
 
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
