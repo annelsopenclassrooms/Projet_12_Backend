@@ -1,10 +1,25 @@
+import sys
+from unittest.mock import MagicMock
+
+# Neutraliser les décorateurs AVANT l'import de user_view
+if "app.views.user_view" in sys.modules:
+    del sys.modules["app.views.user_view"]
+
+mock_auth = MagicMock()
+mock_auth.jwt_required = lambda f: f
+mock_auth.role_required = lambda *roles: (lambda f: f)
+sys.modules["app.utils.auth"] = mock_auth
+
+
 import pytest
 from app.views import user_view
+
 
 # ==== Classes Factices ==== #
 class DummyRole:
     def __init__(self, name="gestion"):
         self.name = name
+
 
 class DummyUser:
     def __init__(

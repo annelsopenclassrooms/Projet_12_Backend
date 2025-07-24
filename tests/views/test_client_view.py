@@ -1,12 +1,19 @@
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
+# D'abord s'assurer que pytest ne charge pas le module avant qu'on neutralise
+if 'app.views.client_view' in sys.modules:
+    del sys.modules['app.views.client_view']
 
-# Neutraliser les décorateurs AVANT l'import
-sys.modules['app.utils.auth'] = MagicMock(jwt_required=lambda f: f, role_required=lambda *r: lambda f: f)
+# Neutraliser les décorateurs dans app.utils.auth
+mock_auth = MagicMock()
+mock_auth.jwt_required = lambda f: f
+mock_auth.role_required = lambda *roles: (lambda f: f)
+sys.modules['app.utils.auth'] = mock_auth
 
 import pytest
 import app.views.client_view as cv
+
 
 # Raccourcis
 show_all_clients_view = cv.show_all_clients_view

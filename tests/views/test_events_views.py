@@ -1,3 +1,15 @@
+import sys
+from unittest.mock import MagicMock
+
+# Neutraliser les décorateurs AVANT l'import de event_view
+if 'app.views.event_view' in sys.modules:
+    del sys.modules['app.views.event_view']
+
+mock_auth = MagicMock()
+mock_auth.jwt_required = lambda f: f
+mock_auth.role_required = lambda *roles: (lambda f: f)
+sys.modules['app.utils.auth'] = mock_auth
+
 import pytest
 import app.views.event_view as event_view
 from datetime import datetime, timedelta
@@ -35,7 +47,6 @@ def test_show_all_events_view(monkeypatch):
                     "first_name": "Support",
                     "last_name": "User"
                 })
-
         return [FakeEvent()]
 
     monkeypatch.setattr(event_view, "list_all_events", fake_list_all_events)

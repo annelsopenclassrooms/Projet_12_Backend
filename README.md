@@ -1,62 +1,102 @@
 # Epic Events CRM
 
-Epic Events CRM est une application en ligne de commande écrite en Python 3.  
-Elle permet de gérer les clients, contrats et événements pour l'entreprise Epic Events.
+Epic Events CRM is a command-line application written in Python 3.  
+It allows managing clients, contracts, and events for the company **Epic Events**.
 
-## 🚀 Fonctionnalités
-- Gestion des utilisateurs avec rôles (commercial, gestion, support)
-- Gestion des clients, contrats et événements
-- Sécurité des mots de passe avec bcrypt
-- Base de données SQLite légère et portable
-- Respect du principe du moindre privilège
+## Features
 
-## 📌 Technologies
+- User management with roles (sales, management, support)
+- Client, contract, and event management
+- Secure password hashing with bcrypt
+- Lightweight and portable SQLite database
+- Follows the principle of least privilege
+
+## Technologies
+
 - Python 3.9+
 - SQLite
 - bcrypt
 
-## ⚙️ Installation
+## Installation
 
-### 1. Cloner le projet
+### 1. Clone the project
 
 ```bash
-git git@github.com:annelsopenclassrooms/Projet_12_Backend.git
+git clone git@github.com:annelsopenclassrooms/Projet_12_Backend.git
 ```
 
-### 2. Créer un environnement virtuel et l’activer :
+### 2. Create and activate a virtual environment :
+
    ```sh
    python -m venv venv
    source venv/bin/activate  # Sur Windows : venv\Scripts\activate
    ```
-### 3. Installer les dépendances :
+### 3. Install dependencies :
+
    ```sh
    pip install -r requirements.txt
    ```
 
-### 4. Créer un utilisateur
+### 4. Create a user
+
    ```sh
    python create_user.py
    ```
 
-### 5. Lancer l'application
+### 5. Run the application
+
    ```sh
    python main.py
    ```
 
-## Structure des tables
+## Database Structure
 
-Les principales tables :
+#### Roles
 
-    users (username, password haché, prénom, nom, rôle)
+* id (Integer, PK)
+* name (String, unique, not null)
 
-    clients (prénom, nom, email, téléphone, société, commercial responsable)
+#### Users
 
-    contracts (client, commercial, montants, statut)
+* id (Integer, PK)
+* username (String, unique, not null)
+* first_name (String, not null)
+* last_name (String, not null)
+* email (String, unique, not null)
+* hashed_password (String, not null)
+* role_id (Integer, FK → Roles.id)
 
-    events (contrat, client, support, lieu, dates)
+#### Clients
 
-    roles (nom du rôle)
+* id (Integer, PK)
+* first_name (String, not null)
+* last_name (String, not null)
+* email (String, unique, not null)
+* phone (String)
+* company_name (String)
+* date_created (DateTime, default = now)
+* date_updated (DateTime, auto-updated)
+* commercial_id (Integer, FK → Users.id)
 
+#### Contracts
 
+* id (Integer, PK)
+* client_id (Integer, FK → Clients.id)
+* commercial_id (Integer, FK → Users.id)
+* total_amount (Float, not null)
+* amount_due (Float, not null)
+* date_created (DateTime, default = now)
+* is_signed (Boolean, default = False)
 
-    
+#### Events
+
+* id (Integer, PK)
+* name (String, not null)
+* contract_id (Integer, FK → Contracts.id)
+* client_id (Integer, FK → Clients.id)
+* support_contact_id (Integer, FK → Users.id, nullable)
+* date_start (DateTime, not null)
+* date_end (DateTime, not null)
+* location (String)
+* attendees (Integer)
+* notes (String)
