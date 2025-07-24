@@ -1,0 +1,58 @@
+erDiagram
+
+    ROLES ||--o{ USERS : "has"
+    USERS ||--o{ CLIENTS : "creates"
+    USERS ||--o{ EVENTS : "assigned_to"
+    CLIENTS ||--o{ CONTRACTS : "has"
+    CLIENTS ||--o{ EVENTS : "has"
+    CONTRACTS ||--o{ EVENTS : "linked_to"
+
+    ROLES {
+        int id PK
+        string name
+    }
+
+    USERS {
+        int id PK
+        string username
+        string first_name
+        string last_name
+        string email
+        string hashed_password
+        int role_id FK
+    }
+
+    CLIENTS {
+        int id PK
+        string first_name
+        string last_name
+        string email
+        string phone
+        string company_name
+        datetime date_created
+        datetime date_updated
+        int commercial_id FK
+    }
+
+    CONTRACTS {
+        int id PK
+        int client_id FK
+        int commercial_id FK
+        float total_amount
+        float amount_due
+        datetime date_created
+        boolean is_signed
+    }
+
+    EVENTS {
+        int id PK
+        string name
+        int contract_id FK
+        int client_id FK
+        int support_contact_id FK
+        datetime date_start
+        datetime date_end
+        string location
+        int attendees
+        string notes
+    }
