@@ -100,3 +100,9 @@ git clone git@github.com:annelsopenclassrooms/Projet_12_Backend.git
 * location (String)
 * attendees (Integer)
 * notes (String)
+
+### Database Schema
+
+https://github.com/annelsopenclassrooms/Projet_12_Backend/blob/main/DB_schema.mermaid
+https://github.com/annelsopenclassrooms/Projet_12_Backend/blob/main/DB_schema.png
+
