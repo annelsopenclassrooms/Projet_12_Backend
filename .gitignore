@@ -3,6 +3,7 @@ create_db.py
 all_files.py
 .token
 tests_perso.py/
+perso/
 
 
 # Byte-compiled / optimized / DLL files

@@ -16,12 +16,32 @@ Elle permet de gérer les clients, contrats et événements pour l'entreprise Ep
 - bcrypt
 
 ## ⚙️ Installation
-1️⃣ Clonez le dépôt :
+
+### 1. Cloner le projet
+
 ```bash
-git clone <url-du-repo>
-cd epic-events-crm
+git git@github.com:annelsopenclassrooms/Projet_12_Backend.git
 ```
 
+### 2. Créer un environnement virtuel et l’activer :
+   ```sh
+   python -m venv venv
+   source venv/bin/activate  # Sur Windows : venv\Scripts\activate
+   ```
+### 3. Installer les dépendances :
+   ```sh
+   pip install -r requirements.txt
+   ```
+
+### 4. Créer un utilisateur
+   ```sh
+   python create_user.py
+   ```
+
+### 5. Lancer l'application
+   ```sh
+   python main.py
+   ```
 
 ## Structure des tables
 
@@ -38,11 +58,5 @@ Les principales tables :
     roles (nom du rôle)
 
 
-## Todo readme
-finir installation y compris db (faire un seed avec roles) et requirement
 
-✅ Exemple d'utilisation
-
-    Ajouter un utilisateur
-    Vérifier un mot de passe
     
