@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import Base
+from .mixins import EncryptedString
 
 class Users(Base):
     __tablename__ = 'users'
@@ -9,7 +10,7 @@ class Users(Base):
     username = Column(String, unique=True, nullable=False)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
-    email = Column(String, unique=True, nullable=False)
+    email = Column(EncryptedString, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
 

@@ -37,6 +37,27 @@ git clone git@github.com:annelsopenclassrooms/Projet_12_Backend.git
    pip install -r requirements.txt
    ```
 
+### 4. Data Encryption Setup
+
+#### 1. Generate a Fernet Key
+
+   ```sh
+   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+   ```
+#### 2. Configure Environment Variables
+
+   Create a .env file (if not already present) and store your generated key
+
+   ```ini
+   # .env
+   FERNET_KEY=your_generated_key_here
+
+   ```
+
+   ⚠ Important:
+
+    Do not commit the .env file to version control (add .env to .gitignore).
+
 ### 4. Create a user
 
    ```sh

@@ -4,6 +4,7 @@ all_files.py
 .token
 tests_perso.py/
 perso/
+.env
 
 
 # Byte-compiled / optimized / DLL files
