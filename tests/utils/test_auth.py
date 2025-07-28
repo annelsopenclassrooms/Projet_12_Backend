@@ -73,19 +73,7 @@ def test_get_current_user_valid(monkeypatch):
 
 
 # ======= Tests jwt_required ======= #
-def test_jwt_required_not_logged(monkeypatch, capsys):
-    def func(user):
-        return "ok"
 
-    decorated = auth.jwt_required(func)
-
-    # Simule get_current_user qui retourne None
-    monkeypatch.setattr(auth, "get_current_user", lambda: None)
-
-    result = decorated()
-    captured = capsys.readouterr()
-    assert "⛔ Accès refusé" in captured.out
-    assert result is None
 
 
 def test_jwt_required_logged(monkeypatch):

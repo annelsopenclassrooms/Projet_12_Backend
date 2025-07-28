@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.models.base import Base
 
+
 @pytest.fixture(scope="session")
 def engine():
     """Crée une base SQLite en mémoire pour tous les tests."""

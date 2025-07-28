@@ -1,9 +1,15 @@
 import jwt
 from datetime import datetime, timedelta, timezone
+import os
+from dotenv import load_dotenv
 
-SECRET_KEY = "SUPER_SECRET_KEY"  # à mettre dans .env
-ALGORITHM = "HS256"
-TOKEN_EXPIRE_MINUTES = 600  # durée de validité
+# Charger le fichier .env
+load_dotenv()
+
+# Lire les variables
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")  # valeur par défaut HS256
+TOKEN_EXPIRE_MINUTES = int(os.getenv("TOKEN_EXPIRE_MINUTES", 600))
 
 
 def create_jwt_token(user):

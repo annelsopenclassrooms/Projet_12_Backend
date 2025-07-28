@@ -10,7 +10,7 @@ def safe_input_int(prompt, allow_empty=False):
         try:
             return int(value)
         except ValueError:
-            print("❌ Please enter a valid number.")
+            print("❌ Merci d'entrer un nombre valide.")
 
 
 def safe_input_float(prompt):
@@ -19,7 +19,7 @@ def safe_input_float(prompt):
         try:
             return float(value)
         except ValueError:
-            print("❌ Please enter a valid number.")
+            print("❌ Merci d'entrer un nombre valide.")
 
 
 def safe_input_yes_no(prompt, default=False):
@@ -35,15 +35,31 @@ def safe_input_yes_no(prompt, default=False):
             print("❌ Please answer y/n.")
 
 
-def safe_input_date(prompt, allow_empty=False):
+def safe_input_date(prompt, default=None, allow_empty=False):
+    """
+    Demande une date à l'utilisateur avec un format YYYY-MM-DD.
+    - prompt : message affiché à l'utilisateur
+    - default : valeur par défaut si aucune entrée n'est donnée
+    - allow_empty : permet de retourner None si l'entrée est vide
+    """
     while True:
-        value = input(prompt).strip()
+        # Affiche le prompt avec la valeur par défaut entre crochets si elle existe
+        message = f"{prompt} [{default}]: " if default else f"{prompt}: "
+        value = input(message).strip()
+
+        # Si l'utilisateur n'entre rien, utiliser la valeur par défaut
+        if not value and default:
+            return default
+
+        # Si vide autorisé et rien entré, retourner None
         if allow_empty and not value:
             return None
+
+        # Essayer de parser la date
         try:
             return datetime.strptime(value, "%Y-%m-%d").date()
         except ValueError:
-            print("❌ Please enter a valid date (YYYY-MM-DD).")
+            print("❌ Veuillez entrer une date valide au format YYYY-MM-DD.")
 
 
 def safe_input_choice(prompt, choices):
@@ -54,7 +70,7 @@ def safe_input_choice(prompt, choices):
             for c in choices:
                 if str(c) == value:
                     return c
-        print(f"❌ Please enter a valid choice: {', '.join(choices_str)}")
+        print(f"❌ M: {', '.join(choices_str)}")
 
 
 def safe_input_email(prompt):
@@ -63,7 +79,7 @@ def safe_input_email(prompt):
         value = input(prompt).strip()
         if re.match(pattern, value):
             return value
-        print("❌ Please enter a valid email.")
+        print("❌ Merci d'entrer un email valide.")
 
 
 def safe_input_phone(prompt):
@@ -76,4 +92,4 @@ def safe_input_phone(prompt):
         value = input(prompt).strip()
         if re.match(pattern, value):
             return value
-        print("❌ Please enter a valid phone number.")
+        print("❌ Merci d'entrer un numéro de téléphone valide.")

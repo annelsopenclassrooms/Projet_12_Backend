@@ -11,7 +11,7 @@ def login():
     session = SessionLocal()
     print("== Connexion ==")
     login_input = input("Email ou nom d'utilisateur : ")
-    password = getpass("Mot de passe : ")  # <<< masque la saisie
+    password = getpass("Mot de passe : ")  # masque la saisie
 
     user, error = authenticate_user(session, login_input, password)
 

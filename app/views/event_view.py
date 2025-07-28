@@ -3,6 +3,7 @@ from app.controllers.event_controller import list_all_events, create_event, upda
 from app.models import Clients, Contracts, Users, Events
 from app.utils.auth import jwt_required, role_required
 from app.utils.helpers import safe_input_int, safe_input_date
+from app.views.user_view import show_all_users_view
 from datetime import datetime, timedelta
 from rich.table import Table
 from rich.console import Console
@@ -159,11 +160,6 @@ def create_event_view(current_user, *args, **kwargs):
         session.close()
 
 
-
-
-
-
-
 def update_event_view(user):
     session = SessionLocal()
     updates = {}
@@ -180,15 +176,15 @@ def update_event_view(user):
 
         if user.role.name == "support":
             updates["name"] = Prompt.ask("Nom de l’événement", default=event.name)
-            updates["date_start"] = helpers.prompt_for_date("Date de début", default=event.date_start)
-            updates["date_end"] = helpers.prompt_for_date("Date de fin", default=event.date_end)
+            updates["date_start"] = safe_input_date("Date de début", default=event.date_start)
+            updates["date_end"] = safe_input_date("Date de fin", default=event.date_end)
             updates["location"] = Prompt.ask("Lieu", default=event.location)
             updates["attendees"] = int(Prompt.ask("Nombre de participants", default=str(event.attendees)))
             updates["notes"] = Prompt.ask("Notes", default=event.notes)
 
         elif user.role.name == "gestion":
-            support_users = session.query(Users).filter_by(role="support").all()
-            helpers.display_support_users(support_users)
+            #support_users = session.query(Users).filter_by(role="support").all()
+            show_all_users_view()
             updates["support_contact_id"] = int(Prompt.ask("ID du support à affecter"))
 
         confirm = Confirm.ask("Confirmer la mise à jour ?", default=True)
@@ -206,15 +202,6 @@ def update_event_view(user):
         console.print(f"[red]Erreur inattendue : {e}[/red]")
     finally:
         session.close()
-
-
-
-
-
-
-
-
-
 
 
 @jwt_required
