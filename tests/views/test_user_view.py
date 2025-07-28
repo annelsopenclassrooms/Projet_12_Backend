@@ -127,10 +127,6 @@ def test_update_user_view_invalid_id(monkeypatch):
     user_view.update_user_view(fake_user)
 
 
-
-
-
-
 def test_show_all_users_view(monkeypatch):
     fake_user = FakeUser(role_name="gestion")
     monkeypatch.setattr(user_view, "SessionLocal", FakeSessionFactory())

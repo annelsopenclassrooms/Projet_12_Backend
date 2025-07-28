@@ -87,7 +87,7 @@ def test_create_event_client_not_found():
     )
 
     assert event is None
-    assert error == "❌ Client ID 1 not found."
+    assert error == "❌ Client ID 1 non trouvé."
 
 
 def test_create_event_contract_not_found():
@@ -111,7 +111,7 @@ def test_create_event_contract_not_found():
     )
 
     assert event is None
-    assert error == "❌ Contract ID 2 not found."
+    assert error == "❌ Contract ID 2 non trouvé."
 
 
 def test_create_event_invalid_support_contact():
@@ -136,7 +136,7 @@ def test_create_event_invalid_support_contact():
     )
 
     assert event is None
-    assert error == "❌ Support contact ID 3 invalid."
+    assert error == "❌ Support contact ID 3 invalide."
 
 
 # === Tests update_event ===
@@ -181,7 +181,7 @@ def test_update_event_unauthorized_support_other_event():
     updated, error = update_event(session, 1, {"name": "Hack"}, user)
 
     assert updated is None
-    assert error == "⛔ You are not allowed to update this event."
+    assert error == "⛔ Vous n'avez pas la permission de modifier cet événement."
 
 
 def test_update_event_unauthorized_field_support():
@@ -195,7 +195,7 @@ def test_update_event_unauthorized_field_support():
     updated, error = update_event(session, 1, updates, user)
 
     assert updated is None
-    assert error == "⛔ You are not allowed to modify 'support_contact_id' as a 'support'."
+    assert error == "⛔ Vous n'avez pas la permission de modifier 'support_contact_id' en tant que 'support'."
 
 
 def test_update_event_not_found():
@@ -207,4 +207,4 @@ def test_update_event_not_found():
     updated, error = update_event(session, 1, {}, user)
 
     assert updated is None
-    assert error == "❌ Event ID 1 not found."
+    assert error == "❌ Event ID 1 non trouvé."

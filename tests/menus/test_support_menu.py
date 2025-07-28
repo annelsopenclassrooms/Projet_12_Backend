@@ -15,7 +15,8 @@ class FakeUser:
         ("2", "show_all_contracts_view"),
         ("3", "show_all_events_view"),
         ("4", "filter_events_view"),
-        ("5", "update_event_view"),
+        ("5", "show_user_events_view"),
+        ("6", "update_event_view"),
     ]
 )
 def test_support_menu(monkeypatch, input_choice, expected_func_name):
@@ -27,6 +28,7 @@ def test_support_menu(monkeypatch, input_choice, expected_func_name):
     monkeypatch.setattr(support_menu, "show_all_events_view", lambda user: called.append("show_all_events_view"))
     monkeypatch.setattr(support_menu, "filter_events_view", lambda user: called.append("filter_events_view"))
     monkeypatch.setattr(support_menu, "update_event_view", lambda user: called.append("update_event_view"))
+    monkeypatch.setattr(support_menu, "show_user_events_view", lambda user: called.append("show_user_events_view"))
 
     # Patch du display_action_menu pour simuler le choix utilisateur
     def fake_display_action_menu(actions, user):

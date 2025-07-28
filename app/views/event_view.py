@@ -105,22 +105,12 @@ def create_event_view(current_user, *args, **kwargs):
         if not contract_id:
             return
 
-        # Sélection du support (optionnel)
-        support_users = session.query(Users).filter(Users.role.has(name="support")).all()
-        support_table = Table(title="📌 Contacts support", header_style="bold blue")
-        support_table.add_column("ID", justify="right")
-        support_table.add_column("Nom")
-        
-        for user in support_users:
-            support_table.add_row(str(user.id), f"{user.first_name} {user.last_name}")
-        console.print(support_table)
 
-        support_id = safe_input_int("ID du support (laisser vide si aucun) : ", optional=True)
 
         # Saisie des détails
         name = Prompt.ask("Nom de l'événement")
-        date_start = safe_input_date("Date de début (JJ/MM/AAAA) : ")
-        date_end = safe_input_date("Date de fin (JJ/MM/AAAA) : ")
+        date_start = safe_input_date("Date de début (YYYY-MM-DD) : ")
+        date_end = safe_input_date("Date de fin (YYYY-MM-DD) : ")
         location = Prompt.ask("Lieu")
         attendees = safe_input_int("Nombre de participants : ")
         notes = Prompt.ask("Notes (optionnel) : ", default="")
@@ -144,7 +134,7 @@ def create_event_view(current_user, *args, **kwargs):
                 name=name,
                 contract_id=contract_id,
                 client_id=client_id,
-                support_contact_id=support_id,
+                support_contact_id=None,
                 date_start=date_start,
                 date_end=date_end,
                 location=location,
@@ -159,21 +149,69 @@ def create_event_view(current_user, *args, **kwargs):
     finally:
         session.close()
 
-
-def update_event_view(user):
+        
+@jwt_required
+@role_required("support", "gestion")
+def update_event_view(user, *args, **kwargs):
     session = SessionLocal()
     updates = {}
 
     try:
-        event_id = int(Prompt.ask("ID de l’événement à modifier", default="0"))
+        console.print("\n[bold cyan]=== Mise à jour d'un événement ===[/bold cyan]")
+
+        # === Affichage des événements disponibles ===
+        if user.role.name == "support":
+            events = session.query(Events).filter(
+                Events.support_contact_id == user.id
+            ).order_by(Events.date_start).all()
+            title = f"📋 Événements attribués à {user.first_name}"
+        else:  # gestion
+            events = session.query(Events).order_by(Events.date_start).all()
+            title = "📋 Tous les événements"
+
+        if not events:
+            console.print("[yellow]Aucun événement trouvé pour votre rôle.[/yellow]")
+            return
+
+        table = Table(title=title, header_style="bold magenta")
+        table.add_column("ID", justify="right", style="cyan")
+        table.add_column("Nom", style="green")
+        table.add_column("Client", style="yellow")
+        table.add_column("Dates", style="blue")
+        table.add_column("Lieu", style="cyan")
+        table.add_column("Participants", justify="right")
+        table.add_column("Support", style="magenta")
+
+        for event in events:
+            dates = f"{event.date_start.strftime('%d/%m')} → {event.date_end.strftime('%d/%m/%Y')}"
+            table.add_row(
+                str(event.id),
+                event.name,
+                event.client.company_name,
+                dates,
+                event.location,
+                str(event.attendees),
+                f"{event.support_contact.first_name} {event.support_contact.last_name}" if event.support_contact else "Aucun"
+            )
+
+        console.print(table)
+
+        # === Sélection de l'événement à modifier ===
+        event_id = safe_input_int("ID de l’événement à modifier : ")
         event = session.query(Events).get(event_id)
 
         if not event:
             console.print("[red]Événement introuvable.[/red]")
             return
 
+        # Vérification : un support ne peut modifier que ses propres événements
+        if user.role.name == "support" and event.support_contact_id != user.id:
+            console.print("[red]Vous ne pouvez modifier que vos événements attribués.[/red]")
+            return
+
         console.print(f"[bold]Événement actuel :[/bold] {event.name}")
 
+        # === Mise à jour selon le rôle ===
         if user.role.name == "support":
             updates["name"] = Prompt.ask("Nom de l’événement", default=event.name)
             updates["date_start"] = safe_input_date("Date de début", default=event.date_start)
@@ -183,9 +221,44 @@ def update_event_view(user):
             updates["notes"] = Prompt.ask("Notes", default=event.notes)
 
         elif user.role.name == "gestion":
-            #support_users = session.query(Users).filter_by(role="support").all()
-            show_all_users_view()
-            updates["support_contact_id"] = int(Prompt.ask("ID du support à affecter"))
+            # Afficher seulement les users support
+            session = SessionLocal()
+            try:
+                supports = session.query(Users).join(Users.role).filter_by(name="support").all()
+                if supports:
+                    table = Table(title="Liste des supports", header_style="bold magenta")
+                    table.add_column("ID", style="cyan")
+                    table.add_column("Username")
+                    table.add_column("Prénom")
+                    table.add_column("Nom")
+                    table.add_column("Email")
+
+                    for s in supports:
+                        table.add_row(str(s.id), s.username, s.first_name, s.last_name, s.email)
+
+                    console.print(table)
+                else:
+                    console.print("[red]Aucun support trouvé.[/red]")
+            finally:
+                session.close()
+
+            # Demander un ID de support et vérifier qu'il est bien un 'support'
+            while True:
+                support_id = safe_input_int(
+                    "ID du support à affecter (laisser vide pour ne pas changer) : ",
+                    allow_empty=True
+                )
+
+                if support_id is None:
+                    updates["support_contact_id"] = None
+                    break
+
+                support_user = session.query(Users).get(support_id)
+                if support_user and support_user.role.name == "support":
+                    updates["support_contact_id"] = support_id
+                    break
+                else:
+                    console.print(f"[red]L'utilisateur {support_id} n'est pas un support valide.[/red]")
 
         confirm = Confirm.ask("Confirmer la mise à jour ?", default=True)
 
@@ -202,6 +275,7 @@ def update_event_view(user):
         console.print(f"[red]Erreur inattendue : {e}[/red]")
     finally:
         session.close()
+
 
 
 @jwt_required
@@ -294,5 +368,66 @@ def filter_events_view(current_user, *args, **kwargs):
                     console.print(f"- Participants: {event.attendees}")
                     console.print(f"- Notes: {event.notes or 'Aucune'}")
                     console.print(f"- Support: {event.support_contact.first_name + ' ' + event.support_contact.last_name if event.support_contact else 'Aucun'}")
+    finally:
+        session.close()
+
+
+@jwt_required
+@role_required("support")
+def show_user_events_view(current_user, *args, **kwargs):
+    """Affiche les événements attribués à l'utilisateur connecté"""
+    session = SessionLocal()
+    try:
+        console.print(f"\n[bold cyan]=== Événements attribués à {current_user.first_name} {current_user.last_name} ===[/bold cyan]")
+
+        # On récupère uniquement les événements dont le support_contact est l'utilisateur courant
+        events = session.query(Events).filter(
+            Events.support_contact_id == current_user.id
+        ).order_by(Events.date_start).all()
+
+        if not events:
+            console.print("[yellow]Aucun événement ne vous est attribué.[/yellow]")
+            return
+
+        # Table de résultats
+        table = Table(
+            title=f"📋 Événements de {current_user.first_name}",
+            header_style="bold magenta"
+        )
+        table.add_column("ID", justify="right", style="cyan")
+        table.add_column("Nom", style="green")
+        table.add_column("Client", style="yellow")
+        table.add_column("Dates", style="blue")
+        table.add_column("Lieu", style="cyan")
+        table.add_column("Participants", justify="right")
+
+        for event in events:
+            dates = f"{event.date_start.strftime('%d/%m')} → {event.date_end.strftime('%d/%m/%Y')}"
+            table.add_row(
+                str(event.id),
+                event.name,
+                event.client.company_name,
+                dates,
+                event.location,
+                str(event.attendees)
+            )
+
+        console.print(table)
+
+        # Option pour voir les détails
+        if Confirm.ask("\nVoir les détails d'un événement ?", default=False):
+            event_id = safe_input_int("ID de l'événement : ")
+            if event_id:
+                event = session.query(Events).get(event_id)
+                if event and event.support_contact_id == current_user.id:
+                    console.print(f"\n[bold]Détails de l'événement ID {event.id}[/bold]")
+                    console.print(f"- Nom: {event.name}")
+                    console.print(f"- Client: {event.client.company_name}")
+                    console.print(f"- Dates: {event.date_start.strftime('%d/%m/%Y %H:%M')} → {event.date_end.strftime('%d/%m/%Y %H:%M')}")
+                    console.print(f"- Lieu: {event.location}")
+                    console.print(f"- Participants: {event.attendees}")
+                    console.print(f"- Notes: {event.notes or 'Aucune'}")
+                else:
+                    console.print("[red]Événement introuvable ou non attribué à cet utilisateur.[/red]")
     finally:
         session.close()

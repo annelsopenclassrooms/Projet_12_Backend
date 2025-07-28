@@ -106,7 +106,7 @@ def update_client_view(current_user, *args, **kwargs):
         console.print(table)
 
         # Sélection client
-        client_id = safe_input_int("\nID du client à modifier")
+        client_id = safe_input_int("\nID du client à modifier: ")
         if not client_id:
             return
 
