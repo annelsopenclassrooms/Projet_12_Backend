@@ -20,7 +20,7 @@ print("✅ Rôles OK")
 # 🔑 Liste des utilisateurs à créer
 users_data = [
     {
-        "username": "admin_gestion",
+        "username": "alice_gestion",
         "first_name": "Alice",
         "last_name": "Durand",
         "email": "alice.gestion@example.com",

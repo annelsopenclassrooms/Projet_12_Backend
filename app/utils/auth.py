@@ -3,8 +3,10 @@ from app.config import SessionLocal
 from app.models import Users
 from app.utils.jwt_handler import decode_jwt_token
 from functools import wraps
+from app.views.login import login
 
 TOKEN_FILE = ".token"
+
 
 def get_current_user():
     if not os.path.exists(TOKEN_FILE):
@@ -31,9 +33,11 @@ def jwt_required(func):
         user = get_current_user()
         if not user:
             print("⛔ Accès refusé : vous devez être connecté.")
+            login()
             return
         return func(user, *args, **kwargs)
     return wrapper
+
 
 def role_required(*allowed_roles):
     """

@@ -2,6 +2,7 @@ from app.config import SessionLocal
 from app.models import Clients, Users
 from datetime import datetime
 
+
 def seed_clients():
     session = SessionLocal()
 
